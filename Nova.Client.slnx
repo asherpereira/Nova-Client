@@ -1,5 +1,21 @@
 <Solution>
-  <Project Path="src/Nova.Client.Core/Nova.Client.Core.csproj" />
-  <Project Path="src/Nova.Client.Protocol/Nova.Client.Protocol.csproj" />
-  <Project Path="src/Nova.Client.Windows/Nova.Client.Windows.csproj" />
+  <Configurations>
+    <BuildType Name="Debug" />
+    <BuildType Name="Release" />
+    <Platform Name="ARM64" />
+    <Platform Name="x64" />
+  </Configurations>
+
+  <Project Path="src/Nova.Client.Core/Nova.Client.Core.csproj">
+    <Platform Project="Any CPU" />
+  </Project>
+
+  <Project Path="src/Nova.Client.Protocol/Nova.Client.Protocol.csproj">
+    <Platform Project="Any CPU" />
+  </Project>
+
+  <Project Path="src/Nova.Client.Windows/Nova.Client.Windows.csproj">
+    <Platform Solution="*|ARM64" Project="ARM64" />
+    <Platform Solution="*|x64" Project="x64" />
+  </Project>
 </Solution>
