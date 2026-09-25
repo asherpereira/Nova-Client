@@ -11,7 +11,7 @@
         </Grid.RowDefinitions>
 
         <!-- Thin adaptive utility bar. Intentionally quiet when unused. -->
-        <Border Grid.Row="0" Background="{ThemeResource NovaSurfaceBrush}" BorderBrush="{ThemeResource NovaBorderBrush}" BorderThickness="0,0,0,1}">
+        <Border Grid.Row="0" Background="{ThemeResource NovaSurfaceBrush}" BorderBrush="{ThemeResource NovaBorderBrush}" BorderThickness="0,0,0,1">
             <Grid Padding="12,0,10,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -182,7 +182,7 @@
 
                     <Border Padding="18,10"
                             BorderBrush="{ThemeResource NovaBorderBrush}"
-                            BorderThickness="0,0,0,1}">
+                            BorderThickness="0,0,0,1">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
