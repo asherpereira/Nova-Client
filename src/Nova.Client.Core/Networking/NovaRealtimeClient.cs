@@ -19,7 +19,10 @@ public sealed class NovaRealtimeClient : IAsyncDisposable
 
     public NovaRealtimeClient(string baseUrl, Func<string?> tokenProvider)
     {
-        _endpoint = new Uri(new Uri(baseUrl.TrimEnd('/') + "/"), "ws");
+        var baseUri = new Uri(baseUrl.TrimEnd('/') + "/");
+        var scheme = baseUri.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase) ? "wss" : "ws";
+        var builder = new UriBuilder(baseUri) { Scheme = scheme, Path = baseUri.AbsolutePath.TrimEnd('/') + "/ws" };
+        _endpoint = builder.Uri;
         _tokenProvider = tokenProvider;
     }
 
