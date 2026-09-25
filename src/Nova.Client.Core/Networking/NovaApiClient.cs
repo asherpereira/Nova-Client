@@ -28,35 +28,42 @@ public sealed class NovaApiClient
         return response.IsSuccessStatusCode;
     }
 
-    public Task<JsonObject> RegisterAsync(string username, string displayName, string password, CancellationToken ct = default) =>
+    public Task<JsonNode> RegisterAsync(string username, string displayName, string password, CancellationToken ct = default) =>
         PostJsonAsync("api/v1/auth/register", new { username, displayName, password }, ct, false);
 
-    public Task<JsonObject> LoginAsync(string username, string password, CancellationToken ct = default) =>
+    public Task<JsonNode> LoginAsync(string username, string password, CancellationToken ct = default) =>
         PostJsonAsync("api/v1/auth/login", new { username, password }, ct, false);
 
-    public Task<JsonObject> MeAsync(CancellationToken ct = default) =>
+    public Task<JsonNode> MeAsync(CancellationToken ct = default) =>
         GetJsonAsync("api/v1/me", ct);
 
-    public Task<JsonObject> ConversationsAsync(CancellationToken ct = default) =>
+    public Task<JsonNode> ConversationsAsync(CancellationToken ct = default) =>
         GetJsonAsync("api/v1/conversations", ct);
 
-    public Task<JsonObject> MessagesAsync(string conversationId, CancellationToken ct = default) =>
+    public Task<JsonNode> MessagesAsync(string conversationId, CancellationToken ct = default) =>
         GetJsonAsync($"api/v1/conversations/{Uri.EscapeDataString(conversationId)}/messages", ct);
 
-    public Task<JsonObject> SendMessageAsync(object payload, CancellationToken ct = default) =>
-        PostJsonAsync("api/v1/messages", payload, ct, true);
+    public Task<JsonNode> SendMessageAsync(Guid conversationId, string ciphertext, string nonce, int encryptionVersion = 1, Guid? clientMessageId = null, CancellationToken ct = default) =>
+        PostJsonAsync("api/v1/messages", new
+        {
+            conversationId,
+            clientMessageId,
+            ciphertext,
+            nonce,
+            encryptionVersion
+        }, ct, true);
 
-    private async Task<JsonObject> GetJsonAsync(string path, CancellationToken ct)
+    private async Task<JsonNode> GetJsonAsync(string path, CancellationToken ct)
     {
         using var response = await SendAsync(HttpMethod.Get, path, null, ct, true);
-        return await ReadObjectAsync(response, ct);
+        return await ReadJsonAsync(response, ct);
     }
 
-    private async Task<JsonObject> PostJsonAsync(string path, object payload, CancellationToken ct, bool authenticated)
+    private async Task<JsonNode> PostJsonAsync(string path, object payload, CancellationToken ct, bool authenticated)
     {
         var json = JsonSerializer.Serialize(payload, _json);
         using var response = await SendAsync(HttpMethod.Post, path, new StringContent(json, Encoding.UTF8, "application/json"), ct, authenticated);
-        return await ReadObjectAsync(response, ct);
+        return await ReadJsonAsync(response, ct);
     }
 
     private async Task<HttpResponseMessage> SendAsync(HttpMethod method, string path, HttpContent? content, CancellationToken ct, bool authenticated)
@@ -64,21 +71,36 @@ public sealed class NovaApiClient
         using var request = new HttpRequestMessage(method, new Uri(new Uri(BaseUrl), path));
         request.Content = content;
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-        if (authenticated && !string.IsNullOrWhiteSpace(_accessToken))
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _accessToken);
 
-        var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
-        return response;
+        if (authenticated)
+        {
+            if (string.IsNullOrWhiteSpace(_accessToken))
+                throw new NovaApiException(HttpStatusCode.Unauthorized, "Nova authentication is required.");
+
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _accessToken);
+        }
+
+        return await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
     }
 
-    private async Task<JsonObject> ReadObjectAsync(HttpResponseMessage response, CancellationToken ct)
+    private static async Task<JsonNode> ReadJsonAsync(HttpResponseMessage response, CancellationToken ct)
     {
         var body = await response.Content.ReadAsStringAsync(ct);
+
         if (!response.IsSuccessStatusCode)
             throw new NovaApiException(response.StatusCode, ExtractError(body));
 
-        if (string.IsNullOrWhiteSpace(body)) return new JsonObject();
-        return JsonNode.Parse(body)?.AsObject() ?? new JsonObject();
+        if (string.IsNullOrWhiteSpace(body))
+            return new JsonObject();
+
+        try
+        {
+            return JsonNode.Parse(body) ?? new JsonObject();
+        }
+        catch (JsonException)
+        {
+            throw new NovaApiException(response.StatusCode, "The Nova server returned invalid JSON.");
+        }
     }
 
     private static string ExtractError(string body)
@@ -91,13 +113,17 @@ public sealed class NovaApiClient
                 ?? node?["title"]?.GetValue<string>()
                 ?? "The Nova server rejected the request.";
         }
-        catch { return "The Nova server rejected the request."; }
+        catch
+        {
+            return "The Nova server rejected the request.";
+        }
     }
 
     private static string NormalizeBaseUrl(string value)
     {
         if (!Uri.TryCreate(value, UriKind.Absolute, out var uri))
             throw new ArgumentException("Nova backend URL must be an absolute URL.", nameof(value));
+
         return uri.ToString().TrimEnd('/') + "/";
     }
 }
