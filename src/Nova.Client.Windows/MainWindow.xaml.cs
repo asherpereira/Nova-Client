@@ -22,6 +22,7 @@ public sealed partial class MainWindow : Window
         _auth = auth;
         _api = api;
         InitializeComponent();
+        Closed += MainWindow_Closed;
         ApplyCurrentUser();
         _ = ConnectRealtimeAsync();
     }
@@ -189,9 +190,8 @@ public sealed partial class MainWindow : Window
         MessageScrollViewer.ChangeView(null, MessageScrollViewer.ScrollableHeight, null);
     }
 
-    protected override void OnClosed(WindowEventArgs args)
+    private void MainWindow_Closed(object sender, WindowEventArgs args)
     {
         _ = _realtime?.DisconnectAsync();
-        base.OnClosed(args);
     }
 }
