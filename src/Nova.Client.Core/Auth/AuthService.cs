@@ -76,8 +76,11 @@ public sealed class AuthService
         return Task.CompletedTask;
     }
 
-    private static AuthSession ParseSession(JsonObject json)
+    private static AuthSession ParseSession(JsonNode response)
     {
+        if (response is not JsonObject json)
+            throw new InvalidOperationException("The Nova server returned an invalid authentication response.");
+
         if (!TryGetToken(json, out var token))
             throw new InvalidOperationException("The server did not return an access token.");
 
@@ -98,8 +101,11 @@ public sealed class AuthService
         return !string.IsNullOrWhiteSpace(token);
     }
 
-    private static UserProfile ParseUser(JsonObject json)
+    private static UserProfile ParseUser(JsonNode response)
     {
+        if (response is not JsonObject json)
+            throw new InvalidOperationException("The Nova server returned an invalid user response.");
+
         var id = json["id"]?.GetValue<string>()
             ?? json["userId"]?.GetValue<string>()
             ?? string.Empty;
