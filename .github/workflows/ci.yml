@@ -1,0 +1,29 @@
+name: Nova Client CI
+
+on:
+  push:
+    branches: [main, 'feature/**', 'bootstrap/**']
+  pull_request:
+    branches: [main]
+
+jobs:
+  shared:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - run: dotnet restore Nova.Client.sln
+      - run: dotnet build Nova.Client.sln --configuration Release --no-restore
+      - run: dotnet test Nova.Client.sln --configuration Release --no-build
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - run: dotnet restore src/Nova.Client.Windows/Nova.Client.Windows.csproj -r win-x64
+      - run: dotnet build src/Nova.Client.Windows/Nova.Client.Windows.csproj --configuration Release --no-restore --arch x64
