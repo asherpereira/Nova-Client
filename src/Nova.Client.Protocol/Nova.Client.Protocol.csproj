@@ -1,0 +1,1 @@
+<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework><RootNamespace>Nova.Client.Protocol</RootNamespace><AssemblyName>Nova.Client.Protocol</AssemblyName></PropertyGroup></Project>
