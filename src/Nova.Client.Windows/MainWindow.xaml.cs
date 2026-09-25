@@ -14,6 +14,7 @@ public sealed partial class MainWindow : Window
     private readonly AuthService _auth;
     private readonly NovaApiClient _api;
     private NovaRealtimeClient? _realtime;
+    private Guid? _activeConversationId;
     private bool _serverRailExpanded;
     private bool _detailsExpanded;
 
@@ -24,7 +25,7 @@ public sealed partial class MainWindow : Window
         InitializeComponent();
         Closed += MainWindow_Closed;
         ApplyCurrentUser();
-        _ = ConnectRealtimeAsync();
+        _ = InitializeMessagingAsync();
     }
 
     private void ApplyCurrentUser()
@@ -37,6 +38,29 @@ public sealed partial class MainWindow : Window
         ProfileUsernameText.Text = "@" + user.Username;
         ProfileStatusText.Text = user.Status ?? "Online";
         ConversationTitleButton.Content = display;
+    }
+
+    private async Task InitializeMessagingAsync()
+    {
+        try
+        {
+            var conversations = await _api.ConversationsAsync();
+            if (conversations is System.Text.Json.Nodes.JsonArray list)
+            {
+                var first = list
+                    .OfType<System.Text.Json.Nodes.JsonObject>()
+                    .FirstOrDefault();
+
+                if (Guid.TryParse(first?["id"]?.GetValue<string>(), out var id))
+                    _activeConversationId = id;
+            }
+
+            await ConnectRealtimeAsync();
+        }
+        catch
+        {
+            UtilityContextText.Text = "Offline";
+        }
     }
 
     private async Task ConnectRealtimeAsync()
@@ -139,26 +163,16 @@ public sealed partial class MainWindow : Window
         var text = MessageComposer.Text.Trim();
         if (string.IsNullOrWhiteSpace(text)) return;
 
-        AddMessage("You", text);
-        MessageComposer.Text = string.Empty;
+        if (!_activeConversationId.HasValue)
+        {
+            UtilityContextText.Text = "No conversation selected";
+            return;
+        }
 
-        try
-        {
-            // The backend deliberately treats ciphertext as opaque. Until Nova's
-            // audited E2EE protocol is finalized, the client must not invent crypto.
-            await _api.SendMessageAsync(new
-            {
-                conversationId = "local-development",
-                clientMessageId = Guid.NewGuid().ToString("N"),
-                ciphertext = text,
-                nonce = "",
-                encryptionVersion = "pending"
-            });
-        }
-        catch
-        {
-            UtilityContextText.Text = "Message not sent";
-        }
+        // Nova's server contract accepts ciphertext only. Do not send plaintext
+        // pretending it is encrypted; the audited E2EE layer must supply these
+        // fields before this call is made.
+        UtilityContextText.Text = "Encryption setup required";
     }
 
     private void AddMessage(string author, string text)
