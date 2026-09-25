@@ -1,6 +1,9 @@
 using System;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Text;
+using Microsoft.UI.Xaml.Media;
 
 namespace Nova.Client.Windows;
 
@@ -36,11 +39,6 @@ public sealed partial class MainWindow : Window
 
     private void UpdateServerRailLabels()
     {
-        // Keep the collapsed rail visual and the expanded rail useful without
-        // coupling the navigation model to the eventual backend.
-        if (ServerList is null)
-            return;
-
         foreach (var child in ServerList.Children)
         {
             if (child is Button button)
@@ -60,76 +58,31 @@ public sealed partial class MainWindow : Window
             : new GridLength(0);
     }
 
-    private void HomeButton_Click(object sender, RoutedEventArgs e)
-    {
-        UtilityContextText.Text = string.Empty;
-    }
-
-    private void ServerButton_Click(object sender, RoutedEventArgs e)
-    {
-        UtilityContextText.Text = "Server";
-    }
-
-    private void AddServerButton_Click(object sender, RoutedEventArgs e)
-    {
-        UtilityContextText.Text = "Add server";
-    }
-
-    private void SettingsButton_Click(object sender, RoutedEventArgs e)
-    {
-        UtilityContextText.Text = "Settings";
-    }
+    private void HomeButton_Click(object sender, RoutedEventArgs e) => UtilityContextText.Text = string.Empty;
+    private void ServerButton_Click(object sender, RoutedEventArgs e) => UtilityContextText.Text = "Server";
+    private void AddServerButton_Click(object sender, RoutedEventArgs e) => UtilityContextText.Text = "Add server";
+    private void SettingsButton_Click(object sender, RoutedEventArgs e) => UtilityContextText.Text = "Settings";
 
     private void ConversationButton_Click(object sender, RoutedEventArgs e)
     {
         if (sender is Button button)
-        {
-            var name = button.Content?.ToString() ?? "Conversation";
-            UtilityContextText.Text = name;
-        }
+            UtilityContextText.Text = button.Content?.ToString() ?? "Conversation";
     }
 
-    private void AddGroupButton_Click(object sender, RoutedEventArgs e)
-    {
-        UtilityContextText.Text = "New DM group";
-    }
+    private void AddGroupButton_Click(object sender, RoutedEventArgs e) => UtilityContextText.Text = "New DM group";
+    private void CallButton_Click(object sender, RoutedEventArgs e) => UtilityContextText.Text = "Call";
+    private void SearchButton_Click(object sender, RoutedEventArgs e) => UtilityContextText.Text = "Search";
+    private void MoreButton_Click(object sender, RoutedEventArgs e) => UtilityContextText.Text = "Conversation menu";
 
-    private void CallButton_Click(object sender, RoutedEventArgs e)
-    {
-        UtilityContextText.Text = "Call";
-    }
-
-    private void SearchButton_Click(object sender, RoutedEventArgs e)
-    {
-        UtilityContextText.Text = "Search";
-    }
-
-    private void MoreButton_Click(object sender, RoutedEventArgs e)
-    {
-        UtilityContextText.Text = "Conversation menu";
-    }
-
-    private void SendMessageButton_Click(object sender, RoutedEventArgs e)
-    {
-        SendCurrentMessage();
-    }
+    private void SendMessageButton_Click(object sender, RoutedEventArgs e) => SendCurrentMessage();
 
     private void MessageComposer_KeyDown(object sender, KeyRoutedEventArgs e)
     {
-        if (e.Key == Windows.System.VirtualKey.Enter &&
-            !e.KeyStatus.WasKeyDown &&
-            !IsShiftPressed())
+        if (e.Key == global::Windows.System.VirtualKey.Enter && !e.KeyStatus.WasKeyDown)
         {
             SendCurrentMessage();
             e.Handled = true;
         }
-    }
-
-    private bool IsShiftPressed()
-    {
-        var state = Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(
-            Windows.System.VirtualKey.Shift);
-        return state.HasFlag(Microsoft.UI.Input.KeyState.Down);
     }
 
     private void SendCurrentMessage()
@@ -138,32 +91,30 @@ public sealed partial class MainWindow : Window
         if (string.IsNullOrWhiteSpace(text))
             return;
 
-        MessageList.Children.Add(new StackPanel
+        var textBrush = (Brush)Application.Current.Resources["NovaTextBrush"];
+        var mutedBrush = (Brush)Application.Current.Resources["NovaMutedTextBrush"];
+
+        var message = new StackPanel { Spacing = 2 };
+        message.Children.Add(new TextBlock
         {
-            Spacing = 2,
-            Children =
-            {
-                new TextBlock
-                {
-                    Text = "You",
-                    FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
-                    Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["NovaTextBrush"]
-                },
-                new TextBlock
-                {
-                    Text = text,
-                    TextWrapping = TextWrapping.Wrap,
-                    Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["NovaTextBrush"]
-                },
-                new TextBlock
-                {
-                    Text = DateTime.Now.ToString("HH:mm"),
-                    FontSize = 11,
-                    Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["NovaMutedTextBrush"]
-                }
-            }
+            Text = "You",
+            FontWeight = FontWeights.SemiBold,
+            Foreground = textBrush
+        });
+        message.Children.Add(new TextBlock
+        {
+            Text = text,
+            TextWrapping = TextWrapping.Wrap,
+            Foreground = textBrush
+        });
+        message.Children.Add(new TextBlock
+        {
+            Text = DateTime.Now.ToString("HH:mm"),
+            FontSize = 11,
+            Foreground = mutedBrush
         });
 
+        MessageList.Children.Add(message);
         MessageComposer.Text = string.Empty;
     }
 }
