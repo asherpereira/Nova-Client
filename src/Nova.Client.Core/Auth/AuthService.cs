@@ -53,9 +53,9 @@ public sealed class AuthService
     public async Task<UserProfile> RegisterAsync(string username, string displayName, string password, CancellationToken ct = default)
     {
         var response = await _api.RegisterAsync(username, displayName, password, ct);
-        if (TryGetToken(response, out _))
+        if (response is JsonObject json && TryGetToken(json, out _))
         {
-            var session = ParseSession(response);
+            var session = ParseSession(json);
             _api.SetAccessToken(session.AccessToken);
             var me = await _api.MeAsync(ct);
             CurrentSession = session;
