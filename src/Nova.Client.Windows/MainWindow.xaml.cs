@@ -11,6 +11,9 @@ public sealed partial class MainWindow : Window
 {
     private bool _serverRailExpanded;
     private bool _detailsExpanded;
+    private readonly AuthService _auth;
+    private readonly NovaApiClient _api;
+    private NovaRealtimeClient? _realtime;
 
     public MainWindow()
     {
@@ -91,13 +94,13 @@ public sealed partial class MainWindow : Window
         if (string.IsNullOrWhiteSpace(text))
             return;
 
-        var textBrush = (Brush)Application.Current.Resources["NovaTextBrush"];
+        AddMessage("You", text);\n    }\n\n    private void AddMessage(string author, string text)\n    {\n        var textBrush = (Brush)Application.Current.Resources["NovaTextBrush"];
         var mutedBrush = (Brush)Application.Current.Resources["NovaMutedTextBrush"];
 
         var message = new StackPanel { Spacing = 2 };
         message.Children.Add(new TextBlock
         {
-            Text = "You",
+            Text = author,
             FontWeight = FontWeights.SemiBold,
             Foreground = textBrush
         });
